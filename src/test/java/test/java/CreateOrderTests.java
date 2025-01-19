@@ -2,6 +2,7 @@ package test.java;
 
 import io.qameta.allure.Description;
 import io.qameta.allure.Step;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -21,6 +22,7 @@ public class CreateOrderTests {
     private final String deliveryDate = "2020-06-06";
     private final String comment = "Saske, come back to Konoha";
     private final String[] color;
+    private String track;
 
     public CreateOrderTests(String[] color) {
         this.color = color;
@@ -47,7 +49,8 @@ public class CreateOrderTests {
                 .post("https://qa-scooter.praktikum-services.ru/api/v1/orders")
                 .then()
                 .statusCode(201)
-                .body("track", notNullValue());
+                .body("track", notNullValue())
+                .extract().path("track");
     }
 
     private String createOrderBody() {
@@ -63,5 +66,21 @@ public class CreateOrderTests {
                         "\"color\": %s " +
                         "}", firstName, lastName, address, metroStation, phone, rentTime, deliveryDate, comment,
                 color.length > 0 ? String.format("[\"%s\"]", String.join("\", \"", color)) : "[]");
+    }
+    @After
+    public void tearDown() {
+        if (track != null) {
+            cancelOrder(track); // Отменяем заказ после теста
+        }
+    }
+
+    private void cancelOrder(String track) {
+        given()
+                .header("Content-Type", "application/json")
+                .body("{ \"track\": " + track + " }")
+                .when()
+                .post("https://qa-scooter.praktikum-services.ru/api/v1/orders/cancel")
+                .then()
+                .statusCode(200);
     }
 }

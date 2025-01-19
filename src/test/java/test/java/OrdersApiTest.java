@@ -7,32 +7,19 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
+
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.util.Arrays;
-import java.util.Collection;
+
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-@RunWith(Parameterized.class)
+
 public class OrdersApiTest {
 
-    private final String url;
-
-    public OrdersApiTest(String url) {
-        this.url = url;
-    }
-
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-                {"https://qa-scooter.praktikum-services.ru/api/v1/orders"},
-        });
-    }
+    private final String url = "https://qa-scooter.praktikum-services.ru/api/v1/orders";
 
     @Test
     @Description("Проверка, что в тело ответа возвращается список заказов.")

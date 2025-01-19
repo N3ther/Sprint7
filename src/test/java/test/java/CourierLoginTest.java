@@ -1,120 +1,76 @@
 package test.java;
 
+import api.CourierApi;
+import api.CourierModel;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
-import io.qameta.allure.Step;
-import io.restassured.RestAssured;
 import io.restassured.response.Response;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.Assert.assertNotNull;
 
 @Epic("API Test")
 @Feature("Courier Login API")
 public class CourierLoginTest {
 
-    // Перед каждым тестом настройка базового URL
+    private CourierApi courierApi;
+    private String courierId; // ID курьера для удаления после тестов
+    private final CourierModel courier = new CourierModel("pipa", "1234", "John"); // Объект курьера
+
     @Before
     public void setUp() {
-        RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru";
+        courierApi = new CourierApi();
+        courierApi.createCourier(courier); // Создание курьера через объект
+        courierId = courierApi.loginCourier(courier.getLogin(), courier.getPassword());
+    }
+
+    @After
+    public void tearDown() {
+        if (courierId != null) {
+            courierApi.deleteCourier(courierId);
+        }
     }
 
     @Test
     @Description("Проверка успешного логина курьера с правильными данными")
-    @Step("Отправляем запрос на успешный логин курьера")
     public void testSuccessfulLogin() {
-        String requestBody = "{\"login\": \"pipa\", \"password\": \"1234\"}";
-
-        Response response = given()
-                .contentType("application/json")
-                .body(requestBody)
-                .when()
-                .post("/api/v1/courier/login")
-                .then()
-                .statusCode(200)
-                .body("id", notNullValue())
-                .extract().response();
-
-        // Проверка, что id курьера был возвращен
-        assertNotNull("ID курьера не найден в ответе", response.jsonPath().getString("id"));
+        assertNotNull("ID курьера не найден в ответе", courierId);
     }
 
     @Test
-    @Description("Проверка на отсутствие обязательных данных для логина")
-    @Step("Отправляем запрос без обязательных полей")
-    public void testMissingLoginOrPassword() {
-        String requestBodyMissingLogin = "{\"password\": \"1234\"}";
-        String requestBodyMissingPassword = "{\"login\": \"pipa\"}";
-
-        given()
-                .contentType("application/json")
-                .body(requestBodyMissingLogin)
-                .when()
-                .post("/api/v1/courier/login")
-                .then()
-                .statusCode(400)
-                .body("message", equalTo("Недостаточно данных для входа"));
-
-        given()
-                .contentType("application/json")
-                .body(requestBodyMissingPassword)
-                .when()
-                .post("/api/v1/courier/login")
-                .then()
-                .statusCode(400)
-                .body("message", equalTo("Недостаточно данных для входа"));
+    @Description("Проверка на отсутствие обязательного поля логина")
+    public void testMissingLogin() {
+        CourierModel courierWithoutLogin = new CourierModel("", courier.getPassword(), courier.getFirstName());
+        courierApi.checkCourierCreationWithoutRequiredField("login", courierWithoutLogin);
     }
 
     @Test
-    @Description("Проверка на неверный логин или пароль")
-    @Step("Отправляем запрос с неправильными данными для логина")
-    public void testInvalidLoginOrPassword() {
-        String requestBodyInvalidLogin = "{\"login\": \"pipa\", \"password\": \"wrongpassword\"}";
-
-        given()
-                .contentType("application/json")
-                .body(requestBodyInvalidLogin)
-                .when()
-                .post("/api/v1/courier/login")
-                .then()
-                .statusCode(404)
-                .body("message", equalTo("Учетная запись не найдена"));
+    @Description("Проверка на отсутствие обязательного поля пароля")
+    public void testMissingPassword() {
+        CourierModel courierWithoutPassword = new CourierModel(courier.getLogin(), "", courier.getFirstName());
+        courierApi.checkCourierCreationWithoutRequiredField("password", courierWithoutPassword);
     }
 
     @Test
     @Description("Проверка авторизации несуществующего курьера")
-    @Step("Отправляем запрос с несуществующим пользователем")
     public void testNonExistentCourierLogin() {
-        String requestBodyNonExistent = "{\"login\": \"nonexistentuser\", \"password\": \"1234\"}";
-
-        given()
-                .contentType("application/json")
-                .body(requestBodyNonExistent)
-                .when()
-                .post("/api/v1/courier/login")
-                .then()
+        Response response = courierApi.checkNonExistentCourierLogin("nonexistentuser", "1234");
+        response.then()
                 .statusCode(404)
                 .body("message", equalTo("Учетная запись не найдена"));
     }
 
     @Test
-    @Description("Проверка успешного входа с корректными данными")
-    @Step("Отправляем запрос на успешный логин курьера")
-    public void testLoginWithValidCredentials() {
-        String validRequestBody = "{\"login\": \"pipa\", \"password\": \"1234\"}";
-
-        given()
-                .contentType("application/json")
-                .body(validRequestBody)
-                .when()
-                .post("/api/v1/courier/login")
-                .then()
-                .statusCode(200)
-                .body("id", notNullValue())
-                .body("id", greaterThan(0));
+    @Description("Проверка на неверный логин или пароль")
+    public void testInvalidLoginOrPassword() {
+        Response response = courierApi.checkInvalidLoginOrPassword(courier.getLogin(), "wrongpassword");
+        response.then()
+                .statusCode(404)
+                .body("message", equalTo("Учетная запись не найдена"));
     }
 }
