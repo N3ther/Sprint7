@@ -1,11 +1,15 @@
 package test.java;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.qameta.allure.Description;
 import io.qameta.allure.Step;
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import test.java.models.OrderModel;
+
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
@@ -54,19 +58,16 @@ public class CreateOrderTests {
     }
 
     private String createOrderBody() {
-        return String.format("{ " +
-                        "\"firstName\": \"%s\", " +
-                        "\"lastName\": \"%s\", " +
-                        "\"address\": \"%s\", " +
-                        "\"metroStation\": %d, " +
-                        "\"phone\": \"%s\", " +
-                        "\"rentTime\": %d, " +
-                        "\"deliveryDate\": \"%s\", " +
-                        "\"comment\": \"%s\", " +
-                        "\"color\": %s " +
-                        "}", firstName, lastName, address, metroStation, phone, rentTime, deliveryDate, comment,
-                color.length > 0 ? String.format("[\"%s\"]", String.join("\", \"", color)) : "[]");
+        OrderModel order = new OrderModel(firstName, lastName, address, metroStation, phone, rentTime, deliveryDate, comment, color);
+        ObjectMapper objectMapper = new ObjectMapper();
+        try {
+            return objectMapper.writeValueAsString(order);
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return "{}";
+        }
     }
+
     @After
     public void tearDown() {
         if (track != null) {

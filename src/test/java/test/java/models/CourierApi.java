@@ -1,7 +1,9 @@
-package api;
+package test.java.models;
 
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.qameta.allure.Step;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -11,11 +13,21 @@ public class CourierApi {
 
     private static final String BASE_URL = "https://qa-scooter.praktikum-services.ru/api/v1/courier";
     private static final String LOGIN_URL = BASE_URL + "/login";
+    private ObjectMapper objectMapper = new ObjectMapper();
 
-    public void createCourier(api.CourierModel courier) {
+    private String serializeToJson(Object object) {
+        try {
+            return objectMapper.writeValueAsString(object);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to serialize object to JSON", e);
+        }
+    }
+
+    @Step("Создание курьера")
+    public void createCourier(CourierModel courier) {
         given()
                 .contentType(ContentType.JSON)
-                .body(courier)
+                .body(serializeToJson(courier)) // Используем сериализацию
                 .when()
                 .post(BASE_URL)
                 .then()
@@ -23,10 +35,11 @@ public class CourierApi {
                 .body("ok", is(true));
     }
 
-    public void createCourierWithResponseCheck(api.CourierModel courier, int expectedStatusCode, String expectedMessage) {
+    @Step("Создание курьера с проверкой ответа")
+    public void createCourierWithResponseCheck(CourierModel courier, int expectedStatusCode, String expectedMessage) {
         given()
                 .contentType(ContentType.JSON)
-                .body(courier)
+                .body(serializeToJson(courier))
                 .when()
                 .post(BASE_URL)
                 .then()
@@ -34,6 +47,7 @@ public class CourierApi {
                 .body("message", equalTo(expectedMessage));
     }
 
+    @Step("Логин курьера")
     public String loginCourier(String login, String password) {
         return given()
                 .contentType(ContentType.JSON)
@@ -46,6 +60,7 @@ public class CourierApi {
                 .path("id").toString();
     }
 
+    @Step("Логин курьера с проверкой ответа")
     public Response loginCourierWithResponseCheck(String login, String password) {
         return given()
                 .contentType(ContentType.JSON)
@@ -54,6 +69,7 @@ public class CourierApi {
                 .post(LOGIN_URL);
     }
 
+    @Step("Удаление курьера")
     public void deleteCourier(String id) {
         given()
                 .contentType(ContentType.JSON)
@@ -64,7 +80,8 @@ public class CourierApi {
                 .statusCode(200);
     }
 
-    public void checkCourierCreationWithoutRequiredField(String field, api.CourierModel courier) {
+    @Step("Проверка создания курьера без обязательного поля: {field}")
+    public void checkCourierCreationWithoutRequiredField(String field, CourierModel courier) {
         String body = String.format("{\"login\": \"%s\", \"password\": \"%s\", \"firstName\": \"%s\"}",
                 (field.equals("login") ? "" : courier.getLogin()),
                 (field.equals("password") ? "" : courier.getPassword()),
@@ -80,6 +97,7 @@ public class CourierApi {
                 .body("message", equalTo("Недостаточно данных для создания учетной записи"));
     }
 
+    @Step("Проверка логина несуществующего курьера")
     public Response checkNonExistentCourierLogin(String login, String password) {
         return loginCourierWithResponseCheck(login, password)
                 .then()
@@ -88,6 +106,7 @@ public class CourierApi {
                 .response();
     }
 
+    @Step("Проверка некорректного логина или пароля")
     public Response checkInvalidLoginOrPassword(String login, String password) {
         return loginCourierWithResponseCheck(login, password)
                 .then()

@@ -1,4 +1,4 @@
-package api;
+package test.java.models;
 
 import java.io.Serializable;
 

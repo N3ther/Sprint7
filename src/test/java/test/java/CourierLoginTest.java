@@ -1,7 +1,7 @@
 package test.java;
 
-import api.CourierApi;
-import api.CourierModel;
+import test.java.models.CourierApi;
+import test.java.models.CourierModel;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Feature;
